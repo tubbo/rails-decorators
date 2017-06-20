@@ -15,7 +15,7 @@ module Rails
         options = targets.extract_options!
 
         targets.each do |target|
-          unless target.is_a?(Class)
+          unless target.is_a?(Class) || target.name =~ /Helper\Z/
             raise(
               InvalidDecorator,
               <<-eos.strip_heredoc
@@ -29,24 +29,6 @@ module Rails
                 Resolution:
                   Decorate multiple classes that include the module like so:
                   `decorate Catalog::Product, Content::Page do`
-              eos
-            )
-          end
-
-          if target.name.to_s.end_with?('Helper')
-            raise(
-              InvalidDecorator,
-              <<-eos.strip_heredoc
-
-                Problem:
-                  Rails::Decorators doesn't work with helpers.
-                Summary:
-                  Rails does some magic with helpers which in certain cases
-                  causes decoration to not work.
-                Resolution:
-                  Create a new helper and in a `to_prepare` block, use
-                  ActionPack's `helper` method to include the helper, e.g.
-                  `MyEngine::ApplicationController.helper(MyEngine::BlogsHelper)`
               eos
             )
           end
@@ -80,7 +62,15 @@ module Rails
           end
 
           target.const_set(decorator_name, mod)
-          mod.decorates(target)
+
+          if target.name.to_s.end_with?('Helper')
+            engine = target.name =~ /::/ ? target.name.to_s.split('::')[0..-1].join('::') : nil
+            controller = [engine, 'ApplicationController'].join('::').constantize
+
+            controller.helper(mod)
+          else
+            mod.decorates(target)
+          end
         end
       end
 

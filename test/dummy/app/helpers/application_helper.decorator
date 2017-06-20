@@ -1,0 +1,5 @@
+decorate ApplicationHelper do
+  def foo
+    "#{super} baz"
+  end
+end
