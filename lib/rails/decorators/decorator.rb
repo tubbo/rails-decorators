@@ -5,6 +5,7 @@ module Rails
         Proc.new do
           roots.each do |root|
             decorators = Dir.glob("#{root}/app/**/*.#{Rails::Decorators.extension}")
+            decorators += Dir.glob("#{root}/lib/generators/**/*.#{Rails::Decorators.extension}")
             decorators.sort!
             decorators.each { |d| require_dependency(d) }
           end
