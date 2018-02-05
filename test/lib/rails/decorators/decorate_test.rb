@@ -14,6 +14,12 @@ class DecorateTest < Minitest::Test
   class ChildClass < TestClass
   end
 
+  module TestModule
+    def self.foo
+      'bar'
+    end
+  end
+
   def test_decorate
     decorate(TestClass, with: 'testing') do
       class_methods do
@@ -47,5 +53,17 @@ class DecorateTest < Minitest::Test
   def test_module_definition
     decorate(TestClass, with: 'tests') {}
     assert(TestClass.const_defined?(:TestsTestClassDecorator))
+  end
+
+  def test_module_class_methods_decoration
+    decorate(TestModule, with: 'tests') do
+      class_methods do
+        def foo
+          "#{super}-baz"
+        end
+      end
+    end
+
+    assert_equal("bar-baz", TestModule.foo)
   end
 end

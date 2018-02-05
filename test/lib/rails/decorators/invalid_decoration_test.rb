@@ -16,9 +16,19 @@ module Rails
       end
     end
 
-    def test_module_decorating
+    def test_module_decorating_with_instance_methods
       assert_raises(Rails::Decorators::InvalidDecorator) do
-        decorate(TestModule) {}
+        decorate(TestModule) do
+          # class_methods do
+          #   def foo
+          #     'bar'
+          #   end
+          # end
+
+          def foo
+            'bar'
+          end
+        end
       end
     end
   end

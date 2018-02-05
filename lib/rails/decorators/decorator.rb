@@ -15,24 +15,6 @@ module Rails
         options = targets.extract_options!
 
         targets.each do |target|
-          unless target.is_a?(Class)
-            raise(
-              InvalidDecorator,
-              <<-eos.strip_heredoc
-
-                Problem:
-                  You cannot decorate a Module
-                Summary:
-                  Decoration only works with classes. Decorating modules requires
-                  managing load order, a problem that is very complicated and
-                  beyond the scope of this system.
-                Resolution:
-                  Decorate multiple classes that include the module like so:
-                  `decorate Catalog::Product, Content::Page do`
-              eos
-            )
-          end
-
           if target.name.to_s.end_with?('Helper')
             raise(
               InvalidDecorator,
@@ -77,6 +59,26 @@ module Rails
           mod = Module.new do
             extend Rails::Decorators::Decorator
             module_eval(&module_definition)
+          end
+          instance_methods = mod.instance_methods - Object.public_instance_methods
+          mixin = instance_methods.any? && !target.is_a?(Class)
+
+          if mixin
+            raise(
+              InvalidDecorator,
+              <<-eos.strip_heredoc
+
+                Problem:
+                  You cannot decorate a mixin module
+                Summary:
+                  Decoration only works with classes and static module methods.
+                  Decorating mixin modules requires managing load order, a problem
+                  that is very complicated and beyond the scope of this system.
+                Resolution:
+                  Decorate multiple classes that include the module like so:
+                  `decorate Catalog::Product, Content::Page do`
+              eos
+            )
           end
 
           target.const_set(decorator_name, mod)
