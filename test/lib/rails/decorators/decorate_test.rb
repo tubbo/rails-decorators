@@ -1,7 +1,19 @@
 require 'test_helper'
 
 class DecorateTest < Minitest::Test
+  module TestModule
+    def self.foo
+      'bar'
+    end
+
+    def bar
+      'wonder'
+    end
+  end
+
   class TestClass
+    include TestModule
+
     def self.foo
       'bar'
     end
@@ -12,6 +24,12 @@ class DecorateTest < Minitest::Test
   end
 
   class ChildClass < TestClass
+  end
+
+  class DifferentTestClass
+    def bar
+      'hershey'
+    end
   end
 
   def test_decorate
@@ -47,5 +65,50 @@ class DecorateTest < Minitest::Test
   def test_module_definition
     decorate(TestClass, with: 'tests') {}
     assert(TestClass.const_defined?(:TestsTestClassDecorator))
+  end
+
+  def test_module_class_methods_decoration
+    decorate(TestModule, with: 'tests') do
+      class_methods do
+        def foo
+          "#{super}-baz"
+        end
+      end
+    end
+
+    assert_equal("bar-baz", TestModule.foo)
+  end
+
+  def test_decorators_array
+    decorate(TestClass, with: 'collection') {}
+    decorators = TestClass.decorators.map(&:to_s)
+
+    refute_includes(decorators, 'BasicObject')
+    assert_includes(decorators, 'DecorateTest::TestClass::CollectionTestClassDecorator')
+  end
+
+  class SomeOtherClass
+    def bar
+      'hello'
+    end
+  end
+
+  def test_mixin_module_decoration
+    SomeOtherClass.include(TestModule)
+
+    decorate(TestModule, with: 'mixin') do
+      def bar
+        "#{super} bar"
+      end
+    end
+
+    DifferentTestClass.include(TestModule)
+
+    assert_includes(TestModule.mixed_into, TestClass)
+    assert_includes(TestModule.mixed_into, DifferentTestClass)
+
+    assert_equal('hershey bar', DifferentTestClass.new.bar)
+    assert_equal('wonder bar', TestClass.new.bar)
+    assert_equal('hello bar', SomeOtherClass.new.bar)
   end
 end
